@@ -85,68 +85,39 @@ fixNM <- function(s){
 }
 
 # simulate a game
-SIMgame <- function(t1, t2, yr, pred_wins=T, statsTBL=statsTBL, cv_outcome=cv_outcome){
-  matchup <- left_join(statsTBL %>% filter(year==yr & Team==t1),
-                       statsTBL %>% filter(year==yr & Team==t2),
+# requires statsTBL and cv_outcome
+SIMgame <- function(t1, t2, YR=yr){
+  matchup <- left_join(statsTBL %>% filter(year==YR & Team==t1),
+                       statsTBL %>% filter(year==YR & Team==t2),
                        by='year', suffix=c('','_2'))
-  # x <- as.matrix(select(matchup, AdjEM, AdjO, AdjD, AdjT, Luck, OppO, OppD,
-  #                       AdjEM_2, AdjO_2, AdjD_2, AdjT_2, Luck_2, OppO_2, OppD_2,
-  #                       Rk, Losses, Rk_2, Losses_2))
-  x <- as.matrix(select(matchup, AdjEM, AdjO, AdjD, AdjT, OppO, OppD,
-                        AdjEM_2, AdjO_2, AdjD_2, AdjT_2, OppO_2, OppD_2,
-                        Losses, Losses_2))
-  if (pred_wins==T){
-    out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1]
-  } 
-  # else {
-  #   out <- predict(cv_upset, newx=x, s="lambda.min", type="response")[1]
-  # }
+  x <- as.matrix(matchup %>% dplyr::select(one_of(cv_outcome$glmnet.fit$beta@Dimnames[[1]]))) # use whatever vars model used
+  out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1]
   return(out)
 }
 
-# # bootstrap probability
-# SIMprob <- function(t1, t2, yr, pred_wins=T, bootlen=100){
-#   s <- sample(x=c(t1,t2), size=bootlen, replace=T,
-#               prob=c(SIMgame(t1=t1, t2=t2, yr=yr, pred_wins=pred_wins), 
-#                      SIMgame(t1=t2, t2=t1, yr=yr, pred_wins=pred_wins)))
-#   s2 <- sapply(unique(s), function(x) length(which(s==x)))
-#   out <- ifelse(is.na(s2[t1]), 0, s2[t1]/bootlen) # account for no wins
-#   return(out)
-# }
-
-# # find matchup from lut
-# matchup <- function(tbl1, tbl2){
-#   LUT %>% 
-#     filter(team1==tbl1$Team & team2==tbl2$Team) %>% 
-#     mutate(CumWinPct=tbl1$CumWinPct) %>% 
-#     left_join(
-#       LUT %>% 
-#         filter(team1==tbl2$Team & team2==tbl1$Team) %>% 
-#         mutate(CumWinPct=tbl2$CumWinPct),
-#       by=c('team1'='team2', 'team2'='team1'),
-#       suffix=c('_1','_2')) %>%
-#     mutate(AdjwinP=round((winP_1*(1-upsetP_1)) - (winP_2), 2),
-#            CumWinPct=ifelse(AdjwinP>0, winP_1+CumWinPct_1, winP_2+CumWinPct_2),
-#            SOS=CumWinPct_1 - CumWinPct_2,
-#            Advance=ifelse(AdjwinP>0 & SOS>=0, 1, 2))
-# }
-
-matchup <- function(tbl1, tbl2, lut=LUT){
-  lut %>% 
-    filter(team1==tbl1$Team & team2==tbl2$Team) %>% 
-    mutate(CumWinPct=tbl1$CumWinPct) %>% 
-    left_join(
-      lut %>% 
-        filter(team1==tbl2$Team & team2==tbl1$Team) %>% 
-        mutate(CumWinPct=tbl2$CumWinPct),
-      by=c('team1'='team2', 'team2'='team1'),
-      suffix=c('_1','_2')) %>%
-    mutate(Advance=sample(x=c(1, 2), size=1, prob=c(winP_1, winP_2)),
-           CumWinPct=ifelse(Advance==1, winP_1+CumWinPct_1, winP_2+CumWinPct_2))
+SIMprob <- function(tbl1, tbl2, SS=sampleSize){
+  highW <- SIMgame(t1=tbl1$Team, t2=tbl2$Team) # prob that high seed wins
+  lowW <- SIMgame(t2=tbl1$Team, t1=tbl2$Team) # prob that low seed wins
+  dft <- data.frame(team_1=tbl1$Team, team_2=tbl2$Team, 
+                    CumWinPct_1=tbl1$CumWinPct, CumWinPct_2=tbl2$CumWinPct,
+                    winP_1=highW, winP_2=lowW)
+  if (SS==1){
+    dft <- dft %>% 
+      mutate(Advance=sample(x=c(1, 2), size=1, prob=c(winP_1, winP_2)),
+             CumWinPct=ifelse(Advance==1, winP_1+CumWinPct_1, winP_2+CumWinPct_2))
+  }
+  if (SS>1){ # defaults to team 1 in a tie
+    adv <- sample(x=c(1, 2), size=SS, replace=T, prob=c(dft$winP_1, dft$winP_2)) %>% 
+      table(.)
+    dft <- dft %>% 
+      mutate(Advance=which.max(adv)[[1]],
+             CumWinPct=ifelse(Advance==1, winP_1+CumWinPct_1, winP_2+CumWinPct_2))
+  }
+  return(dft)
 }
 
 
-runRND <- function(teamsIN, rnd, yr){
+runRND <- function(teamsIN, rnd){
   rndNM <- sym(paste0('RND',rnd))
   if (rnd<5){
     t <- teamsIN %>% mutate(id=paste0(Region, !!rndNM))
@@ -154,8 +125,7 @@ runRND <- function(teamsIN, rnd, yr){
     l <- lapply(t %>% pull(id) %>% unique(), function(x){
       highSD <- t %>% filter(id==x) %>% slice_min(Seed)
       lowSD <- t %>% filter(id==x) %>% slice_max(Seed)
-      SIMgame(t1=highSD$Team, t2=lowSD$Team, yr=yr)
-      matchup(tbl1=highSD, tbl2=lowSD)
+      SIMprob(tbl1=highSD, tbl2=lowSD) # requires yr to be defined
     }) %>% 
       do.call('rbind',.) %>% 
       as.data.frame()
@@ -171,13 +141,13 @@ runRND <- function(teamsIN, rnd, yr){
         highSD <- bothSD %>% slice_min(Seed)
         lowSD <- bothSD %>% slice_max(Seed)
       }
-      matchup(tbl1=highSD, tbl2=lowSD)
+      SIMprob(tbl1=highSD, tbl2=lowSD)
     }) %>% 
       do.call('rbind',.) %>% 
       as.data.frame()
   }
   teamsOUT <- l %>% 
-    mutate(Team=ifelse(Advance==1, team1, team2),
+    mutate(Team=ifelse(Advance==1, team_1, team_2),
            CumWinPct=CumWinPct,
            .keep='none') %>% 
     left_join(., t, by='Team') %>% 
@@ -192,8 +162,8 @@ runRND <- function(teamsIN, rnd, yr){
 
 
 # function to set up historic brackets
-mkBracket <- function(yr, mt=masterTBL){
-  teamsTBL <- filter(masterTBL, year==yr)
+mkBracket <- function(YR=yr, mt=masterTBL){
+  teamsTBL <- filter(mt, year==YR)
   teams <- rbind(
     teamsTBL %>% 
       filter(round==1) %>% 
@@ -224,4 +194,104 @@ mkBracket <- function(yr, mt=masterTBL){
                           region_number %in% c(3,4) ~'B'),
            RND6='A')
   return(teams)
+}
+
+
+# assign bracket position
+# requires predDFT and teams
+assignBRKT <- function(){
+  mapBRKT <- rbind(
+    teams %>%
+      mutate(round=0, region_name=Region, winner=Team) %>%  # everyone's a winner
+      dplyr::select(round, region_number, region_name, winner, Seed),
+    predDFT) %>%
+    mutate(BRKTcol=case_when(round==0 & region_number %in% c(1,2) ~ 1,
+                             round==0 & region_number %in% c(3,4) ~ 13,
+                             round==1 & region_number %in% c(1,2) ~ 2,
+                             round==1 & region_number %in% c(3,4) ~ 12,
+                             round==2 & region_number %in% c(1,2) ~ 3,
+                             round==2 & region_number %in% c(3,4) ~ 11,
+                             round==3 & region_number %in% c(1,2) ~ 4,
+                             round==3 & region_number %in% c(3,4) ~ 10,
+                             round==4 & region_number %in% c(1,2) ~ 5,
+                             round==4 & region_number %in% c(3,4) ~ 9,
+                             round==5 & region_number %in% c(1,2) ~ 6,
+                             round==5 & region_number %in% c(3,4) ~ 8,
+                             round==6 ~ 7),
+           
+           BRKTrow=case_when(round==0 & Seed==1 & region_number %in% c(1,3) ~ 1,
+                             round==0 & Seed==16 & region_number %in% c(1,3) ~ 3,
+                             round==0 & Seed==8 & region_number %in% c(1,3) ~ 5,
+                             round==0 & Seed==9 & region_number %in% c(1,3) ~ 7,
+                             round==0 & Seed==5 & region_number %in% c(1,3) ~ 9,
+                             round==0 & Seed==12 & region_number %in% c(1,3) ~ 11,
+                             round==0 & Seed==4 & region_number %in% c(1,3) ~ 13,
+                             round==0 & Seed==13 & region_number %in% c(1,3) ~ 15,
+                             round==0 & Seed==6 & region_number %in% c(1,3) ~ 17,
+                             round==0 & Seed==11 & region_number %in% c(1,3) ~ 19,
+                             round==0 & Seed==3 & region_number %in% c(1,3) ~ 21,
+                             round==0 & Seed==14 & region_number %in% c(1,3) ~ 23,
+                             round==0 & Seed==7 & region_number %in% c(1,3) ~ 25,
+                             round==0 & Seed==10 & region_number %in% c(1,3) ~ 27,
+                             round==0 & Seed==2 & region_number %in% c(1,3) ~ 29,
+                             round==0 & Seed==15 & region_number %in% c(1,3) ~ 31,
+                             
+                             round==0 & Seed==1 & region_number %in% c(2,4) ~ 35,
+                             round==0 & Seed==16 & region_number %in% c(2,4) ~ 37,
+                             round==0 & Seed==8 & region_number %in% c(2,4) ~ 39,
+                             round==0 & Seed==9 & region_number %in% c(2,4) ~ 41,
+                             round==0 & Seed==5 & region_number %in% c(2,4) ~ 43,
+                             round==0 & Seed==12 & region_number %in% c(2,4) ~ 45,
+                             round==0 & Seed==4 & region_number %in% c(2,4) ~ 47,
+                             round==0 & Seed==13 & region_number %in% c(2,4) ~ 49,
+                             round==0 & Seed==6 & region_number %in% c(2,4) ~ 51,
+                             round==0 & Seed==11 & region_number %in% c(2,4) ~ 53,
+                             round==0 & Seed==3 & region_number %in% c(2,4) ~ 55,
+                             round==0 & Seed==14 & region_number %in% c(2,4) ~ 57,
+                             round==0 & Seed==7 & region_number %in% c(2,4) ~ 59,
+                             round==0 & Seed==10 & region_number %in% c(2,4) ~ 61,
+                             round==0 & Seed==2 & region_number %in% c(2,4) ~ 63,
+                             round==0 & Seed==15 & region_number %in% c(2,4) ~ 65,
+                             
+                             round==1 & Seed %in% c(1,16) & region_number %in% c(1,3) ~ 2,
+                             round==1 & Seed %in% c(8,9) & region_number %in% c(1,3) ~ 6,
+                             round==1 & Seed %in% c(5,12) & region_number %in% c(1,3) ~ 10,
+                             round==1 & Seed %in% c(4,13) & region_number %in% c(1,3) ~ 14,
+                             round==1 & Seed %in% c(6,11) & region_number %in% c(1,3) ~ 18,
+                             round==1 & Seed %in% c(3,14) & region_number %in% c(1,3) ~ 22,
+                             round==1 & Seed %in% c(7,10) & region_number %in% c(1,3) ~ 26,
+                             round==1 & Seed %in% c(2,15) & region_number %in% c(1,3) ~ 30,
+                             round==1 & Seed %in% c(1,16) & region_number %in% c(2,4) ~ 36,
+                             round==1 & Seed %in% c(8,9) & region_number %in% c(2,4) ~ 40,
+                             round==1 & Seed %in% c(5,12) & region_number %in% c(2,4) ~ 44,
+                             round==1 & Seed %in% c(4,13) & region_number %in% c(2,4) ~ 48,
+                             round==1 & Seed %in% c(6,11) & region_number %in% c(2,4) ~ 52,
+                             round==1 & Seed %in% c(3,14) & region_number %in% c(2,4) ~ 56,
+                             round==1 & Seed %in% c(7,10) & region_number %in% c(2,4) ~ 60,
+                             round==1 & Seed %in% c(2,15) & region_number %in% c(2,4) ~ 64,
+                             
+                             round==2 & Seed %in% c(1,16,8,9) & region_number %in% c(1,3) ~ 4,
+                             round==2 & Seed %in% c(5,12,4,13) & region_number %in% c(1,3) ~ 12,
+                             round==2 & Seed %in% c(6,11,3,14) & region_number %in% c(1,3) ~ 20,
+                             round==2 & Seed %in% c(7,10,2,15) & region_number %in% c(1,3) ~ 28,
+                             round==2 & Seed %in% c(1,16,8,9) & region_number %in% c(2,4) ~ 38,
+                             round==2 & Seed %in% c(5,12,4,13) & region_number %in% c(2,4) ~ 46,
+                             round==2 & Seed %in% c(6,11,3,14) & region_number %in% c(2,4) ~ 54,
+                             round==2 & Seed %in% c(7,10,2,15) & region_number %in% c(2,4) ~ 62,
+                             round==3 & Seed %in% c(1,16,8,9,5,12,4,13) & region_number %in% c(1,3) ~ 8,
+                             round==3 & Seed %in% c(6,11,3,14,7,10,2,15) & region_number %in% c(1,3) ~ 24,
+                             round==3 & Seed %in% c(1,16,8,9,5,12,4,13) & region_number %in% c(2,4) ~ 42,
+                             round==3 & Seed %in% c(6,11,3,14,7,10,2,15) & region_number %in% c(2,4) ~ 58,
+                             round==4 & region_number %in% c(1,3) ~ 16,
+                             round==4 & region_number %in% c(2,4) ~ 50,
+                             round==5 ~ 32,
+                             round==6 ~ 32))
+  BRKT <- matrix(ncol=13, nrow=65)
+  for (i in 1:nrow(mapBRKT)){
+    BRKT[mapBRKT[i,'BRKTrow'], mapBRKT[i,'BRKTcol']] <- mapBRKT[i,'winner']
+  }
+  BRKT[which(is.na(BRKT))] <- ''
+  colnames(BRKT) <- c('First Round','Second Round','Sweet 16','Elite 8','Final Four','Final','Champion',
+                      'Final', 'Final Four','Elite 8','Sweet 16','Second Round','First Round')
+  return(BRKT)
 }
