@@ -9,13 +9,13 @@ library(xlsx)
 # load data ----
 source('src/ncaaHelpers.R')
 # read model
-cv_outcome <<- readRDS('data/model2021/cv_outcome.rds')
+cv_outcome <<- readRDS('data/models/cv_outcome_2022.rds')
 # read tables
-masterTBL <<- readRDS('shinyData/masterTBL.rds')
-statsTBL <<- readRDS('shinyData/statsTBL.rds')
-teams <<- readRDS('shinyData/teams2021.rds')
+masterTBL <<- readRDS('data/masterTBL.rds')
+statsTBL <<- readRDS('data/statsTBL.rds')
+teams <<- readRDS('data/teams2022.rds')
 # hyperparameters
-yr <<- 2021
+yr <<- 2022
 
 
 # user interface ----
@@ -30,7 +30,7 @@ ui <- fluidPage(
                            fluidRow(
                              column(width=12, 
                                     h4(HTML('<b>Select two teams to simulate a game</b><br/>
-                                            <i>(2021 season)</i>')),
+                                            <i>(2022 season)</i>')),
                                     # team 1
                                     selectInput(inputId='team1',
                                                 label='Team 1', 
