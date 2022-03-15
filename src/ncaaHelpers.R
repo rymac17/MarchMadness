@@ -28,6 +28,7 @@ scrape_kenpom <- function(yr){
            AdjD=as.double(AdjD),
            AdjT=as.double(AdjT),
            Luck=getSIGN(Luck),
+           OppEM=getSIGN(AdjEM.1),
            OppO=as.double(OppO),
            OppD=as.double(OppD),
            `W-L`=NULL,
@@ -89,8 +90,17 @@ fixNM <- function(s){
 SIMprob <- function(t1, t2, YR=yr){
   matchup <- left_join(statsTBL %>% filter(year==YR & Team==t1),
                        statsTBL %>% filter(year==YR & Team==t2),
-                       by='year', suffix=c('','_2'))
+                       by='year', suffix=c('','_2')) %>% 
+    mutate(GameT=AdjT-AdjT_2,
+           GameO=AdjO-AdjD_2,
+           GameD=AdjD-AdjO_2)
   x <- as.matrix(matchup %>% dplyr::select(one_of(cv_outcome$glmnet.fit$beta@Dimnames[[1]]))) # use whatever vars model used
+  # if (matchup$Rk < matchup$Rk_2){
+  #   out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1] *
+  #     (1-predict(cv_upset, newx=x, s="lambda.min", type="response")[1])
+  # } else {
+  #   out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1]
+  # }
   out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1]
   return(out)
 }
@@ -105,9 +115,13 @@ SIMgame <- function(tbl1, tbl2, SS=sampleSize, alacarte=F){
                       CumWinPct_1=tbl1$CumWinPct, CumWinPct_2=tbl2$CumWinPct,
                       winP_1=highW, winP_2=lowW)
     if (SS==1){
-      dft <- dft %>% 
+      dft <- dft %>%
         mutate(Advance=sample(x=c(1, 2), size=1, prob=c(winP_1, winP_2)),
+               Advance=ifelse(Advance==2 & winP_2<0.2, 1, Advance),
                CumWinPct=ifelse(Advance==1, winP_1*CumWinPct_1, winP_2*CumWinPct_2))
+      # dft <- dft %>%
+      #   mutate(Advance=sample(x=c(1, 2), size=1, prob=c(winP_1, winP_2)),
+      #          CumWinPct=ifelse(Advance==1, winP_1*CumWinPct_1, winP_2*CumWinPct_2))
     }
     if (SS>1){ # defaults to team 1 in a tie
       adv <- sample(x=c(1, 2), size=SS, replace=T, prob=c(dft$winP_1, dft$winP_2)) %>% 
@@ -116,19 +130,34 @@ SIMgame <- function(tbl1, tbl2, SS=sampleSize, alacarte=F){
         mutate(Advance=which.max(adv)[[1]],
                CumWinPct=ifelse(Advance==1, winP_1*CumWinPct_1, winP_2*CumWinPct_2))
     }
+    if (SS==0){
+      # dft <- dft %>%
+      #   mutate(Advance=ifelse(winP_2 > 0.5, 2, 1),
+      #          CumWinPct=ifelse(Advance==1, winP_1*CumWinPct_1, winP_2*CumWinPct_2))
+      dft <- dft %>%
+        mutate(Advance=ifelse(winP_1 >= winP_2, 1, 2),
+               CumWinPct=ifelse(Advance==1, winP_1*CumWinPct_1, winP_2*CumWinPct_2))
+    }
   } else {
     highW <- SIMprob(tbl1, tbl2)
     lowW <- SIMprob(tbl2, tbl1)
     dft <- data.frame(team_1=tbl1, team_2=tbl2, winP_1=highW, winP_2=lowW)
     if (SS==1){
       dft <- dft %>% 
-        mutate(Winner=sample(x=c(tbl1, tbl2), size=1, prob=c(winP_1, winP_2)))
+        mutate(winNorm=paste0(round((winP_1/(winP_1+winP_2))*100),'%/',round((winP_2/(winP_1+winP_2))*100),'%'),
+               Winner=sample(x=c(tbl1, tbl2), size=1, prob=c(winP_1, winP_2)))
     }
     if (SS>1){ # defaults to team 1 in a tie
       adv <- sample(x=c(tbl1, tbl2), size=SS, replace=T, prob=c(dft$winP_1, dft$winP_2)) %>% 
         table(.)
       dft <- dft %>% 
-        mutate(Winner=names(which.max(adv)))
+        mutate(winNorm=paste0(round((winP_1/(winP_1+winP_2))*100),'%/',round((winP_2/(winP_1+winP_2))*100),'%'),
+               Winner=names(which.max(adv)))
+    }
+    if (SS==0){
+      dft <- dft %>% 
+        mutate(winNorm=paste0(round((winP_1/(winP_1+winP_2))*100),'%/',round((winP_2/(winP_1+winP_2))*100),'%'),
+               Winner=ifelse(winP_1 >= winP_2, tbl1, tbl2))
     }
   }
   return(dft)
@@ -222,12 +251,12 @@ mkBracket <- function(YR=yr, use_historic=T){
 
 # assign bracket position
 # requires predDFT and teams
-assignBRKT <- function(){
+assignBRKT <- function(t=teams, pdft=predDFT){
   mapBRKT <- rbind(
-    teams %>%
+    t %>%
       mutate(round=0, region_name=Region, winner=Team, Prob='') %>%  # everyone's a winner
       dplyr::select(round, region_number, region_name, winner, Seed, Prob),
-    predDFT %>% 
+    pdft %>% 
       mutate(Prob=paste0('(',round(Prob,2)*100,'%)'))
     ) %>%
     mutate(BRKTcol=case_when(round==0 & region_number %in% c(1,2) ~ 1,
