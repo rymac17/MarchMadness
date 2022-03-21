@@ -11,10 +11,12 @@ source('src/ncaaHelpers.R')
 scrape_kenpom(2021)
 scrape_kenpom(2022)
 
+scrape_kenpom(2022, date=032122)
+
 
 # load stats
 stats <- do.call('rbind',
-                 lapply(list.files('data/kenpom', '.csv$', full.names=T), FUN=read.csv))
+                 lapply(list.files('C:/Users/ryanm/Dropbox/R/MarchMadness_data/kenpom', '.csv$', full.names=T), FUN=read.csv))
 write.csv(stats, 'C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv', row.names=F)
 
 # load scores - from https://data.world/michaelaroy/ncaa-tournament-results
@@ -55,7 +57,7 @@ statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
 teamsTBL <- read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2022.xlsx', sheetName='Sheet1')
 
-t <- 'Gonzaga'
+t <- 'Houston'
 left_join(
   masterTBL %>% 
     filter(team==t | team_2==t) %>% 
@@ -100,7 +102,7 @@ avgSeedLUT <- rbind(masterTBL %>% dplyr::select(SEED=seed, KP=AdjEM), masterTBL 
 # which teams are better than an average of that seed?
 seedTest <- left_join(teamsTBL, statsTBL %>% filter(year==2022), by='Team') %>% 
   left_join(., avgSeedLUT, by=c('Seed'='SEED')) %>% 
-  mutate(plusMinus=AdjEM-AVG)
+  mutate(plusMinus=AdjEM-AVG) %>% 
   arrange(desc(plusMinus))
 
 df <- rbind(masterTBL %>% dplyr::select(seed, Rk, AdjEM, AdjO, AdjD, AdjT, Luck, AdjEM.1, OppO, OppD, Wins, Losses, OppEM),
