@@ -1,6 +1,6 @@
 
 # function for scraping ranking tables off kenpom
-scrape_kenpom <- function(yr){
+scrape_kenpom <- function(yr, date=NULL){
   require(rvest)
   require(magrittr)
   require(dplyr)
@@ -35,7 +35,8 @@ scrape_kenpom <- function(yr){
            .keep='used'
     ) %>% 
     mutate(year=yr)
-  write.csv(tbl, paste0('data/kenpom/kenpom',yr,'.csv'), row.names=F)
+  if (is.null(date)){ write.csv(tbl, paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/kenpom/kenpom',yr,'.csv'), row.names=F) }
+  else { write.csv(tbl, paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/kenpom/kenpom',yr,'_',date,'.csv'), row.names=F) }
 }
 
 # split win-loss column into wins and losses
