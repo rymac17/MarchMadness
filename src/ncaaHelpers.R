@@ -14,8 +14,10 @@ scrape_kenpom <- function(yr, date=NULL){
   colnames(tbl) <- tbl[2,] %>% unlist()
   # remove extra ranks
   tbl <- tbl[,-c(7,9,11,13,15,17,19,21)]
+  # rename 'AdjEM' cols
+  names(tbl)[which(names(tbl)=='AdjEM')] <- paste0(names(tbl)[which(names(tbl)=='AdjEM')],c('','.1','.2'))
   # remove old headers
-  tbl <- tbl %>% filter(Rk!='' & Rk!='Rk')
+  tbl <- tbl %>% dplyr::filter(Rk!='' & Rk!='Rk')
   # change data type
   tbl <- tbl %>% 
     mutate(Rk=as.numeric(Rk),

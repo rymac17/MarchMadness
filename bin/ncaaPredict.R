@@ -11,7 +11,7 @@ masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv'
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 
 # model
-yr <- 2022
+yr <- 2023
 modelTBL <- filter(masterTBL, year!=yr)
 x <- as.matrix(select(modelTBL, 
                       GameT, GameO, GameD,
@@ -35,7 +35,7 @@ library(glmnet)
 library(xlsx)
 source('src/ncaaHelpers.R')
 # hyperparameters
-yr <<- 2022
+yr <<- 2023
 sampleSize <<- 0
 # read model
 cv_outcome <- readRDS(paste0('data/models/cv_outcome_',yr,'.rds'))
@@ -47,10 +47,31 @@ teams <- read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/team
 teams[which(!teams$Team %in% (statsTBL %>% filter(year==yr) %>% pull(Team))),]
 
 # first four
-SIMgame(tbl1='Texas A&M Corpus Christi', tbl2='Texas Southern', alacarte=T)
-SIMgame(tbl1='Indiana', tbl2='Wyoming', alacarte=T)
-SIMgame(tbl1='Bryant', tbl2='Wright St', alacarte=T)
-SIMgame(tbl1='Notre Dame', tbl2='Rutgers', alacarte=T)
+SIMgame(tbl1='Texas A&M Corpus Christi', tbl2='Southeast Missouri St', alacarte=T)
+SIMgame(tbl1='Texas Southern', tbl2='Fairleigh Dickinson', alacarte=T)
+SIMgame(tbl1='Arizona St', tbl2='Nevada', alacarte=T)
+SIMgame(tbl1='Mississippi St', tbl2='Pittsburgh', alacarte=T)
+
+
+
+# regions ----
+for (j in c(1, 2, 3, 4)){
+  rg <- teams %>% 
+    filter(region_number==j)
+  lapply(rg$Team, function(i){
+    opp <- setdiff(rg$Team, i)
+    fld <- lapply(opp, function(x) SIMgame(tbl1=i, tbl2=x, SS=10, alacarte=T)) %>% 
+      do.call('rbind', .) %>% 
+      mutate(winPdiff=winP_1-winP_2) %>% 
+      group_by(team_1) %>% 
+      summarise(CumWinP=sum(winPdiff))
+    return(fld)
+  }) %>% 
+    do.call('rbind',.) %>% 
+    arrange(desc(CumWinP)) %>% 
+    print(.)
+}  
+
 
 
 # # second chance 2021

@@ -8,10 +8,10 @@ source('src/ncaaHelpers.R')
 # lapply(2002:2021, FUN=scrape_kenpom)
 
 # update
-scrape_kenpom(2021)
 scrape_kenpom(2022)
+scrape_kenpom(2023)
 
-scrape_kenpom(2022, date=032122)
+# scrape_kenpom(2022, date=032122)
 
 
 # load stats
@@ -19,9 +19,9 @@ stats <- do.call('rbind',
                  lapply(list.files('C:/Users/ryanm/Dropbox/R/MarchMadness_data/kenpom', '.csv$', full.names=T), FUN=read.csv))
 write.csv(stats, 'C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv', row.names=F)
 
-# load scores - from https://data.world/michaelaroy/ncaa-tournament-results
+# load scores - from https://data.world/michaelaroy/ncaa-tournament-results (1985-2019)
 scores <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/past_results/big_dance_csv.csv') %>% 
-  filter(year %in% 2002:2021)
+  filter(year %in% 2002:2022)
 scores[which(scores$team_2=='Cal Irvine'), 'team_2'] <- 'UC Irvine' # fix issue with names
 # arrange scores so higher seed is first
 scores <- rbind(scores %>% filter(seed<=seed_2),
@@ -55,7 +55,7 @@ library(dplyr)
 library(xlsx)
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
-teamsTBL <- read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2022.xlsx', sheetName='Sheet1')
+teamsTBL <- read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2023.xlsx', sheetName='Sheet1')
 
 t <- 'Houston'
 left_join(
@@ -100,7 +100,7 @@ avgSeedLUT <- rbind(masterTBL %>% dplyr::select(SEED=seed, KP=AdjEM), masterTBL 
             MAX=quantile(KP, probs=1))
 
 # which teams are better than an average of that seed?
-seedTest <- left_join(teamsTBL, statsTBL %>% filter(year==2022), by='Team') %>% 
+seedTest <- left_join(teamsTBL, statsTBL %>% filter(year==2023), by='Team') %>% 
   left_join(., avgSeedLUT, by=c('Seed'='SEED')) %>% 
   mutate(plusMinus=AdjEM-AVG) %>% 
   arrange(desc(plusMinus))
