@@ -43,7 +43,7 @@ masterTBL <- left_join(scores, stats, by=c('team'='Team','year'='year')) %>%
          GameO=AdjO-AdjD_2,
          GameD=AdjD-AdjO_2,
          outcome=ifelse(score>score_2, 1, 0), # 1 win / 0 loss
-         upset=ifelse(seed<seed_2 & outcome==0, 1, 0), # 1 upset / 0 no upset
+         upset=ifelse(seed+5<=seed_2 & outcome==0, 1, 0), # 1 upset / 0 no upset (5 seeds lower)
          margin=score/(score+score_2))
 write.csv(masterTBL, 'C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv', row.names=F)
 
@@ -55,7 +55,7 @@ library(dplyr)
 library(xlsx)
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
-teamsTBL <- read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2023.xlsx', sheetName='Sheet1')
+teamsTBL <- read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2023.xlsx', sheet='Sheet1')
 
 t <- 'Houston'
 left_join(
@@ -80,7 +80,7 @@ left_join(
 
 
 historicalStats <- masterTBL %>% 
-  filter(year!=2022) %>% 
+  filter(year!=2023) %>% 
   group_by(seed, seed_2) %>% 
   summarise(pctUpsets=round(sum(upset)/n(),2), 
             events=n(),

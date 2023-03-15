@@ -4,7 +4,7 @@ library(shiny)
 library(dplyr)
 library(gridExtra)
 library(glmnet)
-library(xlsx)
+library(openxlsx)
 
 # load data ----
 source('src/ncaaHelpers.R')

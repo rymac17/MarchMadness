@@ -90,7 +90,7 @@ fixNM <- function(s){
 
 # estimate probability team1 wins based on model
 # requires statsTBL and cv_outcome
-SIMprob <- function(t1, t2, YR=yr){
+SIMprob <- function(t1, t2, YR=yr, upset=F){
   matchup <- left_join(statsTBL %>% filter(year==YR & Team==t1),
                        statsTBL %>% filter(year==YR & Team==t2),
                        by='year', suffix=c('','_2')) %>% 
@@ -105,6 +105,10 @@ SIMprob <- function(t1, t2, YR=yr){
   #   out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1]
   # }
   out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1]
+  if (upset==T){
+    x <- as.matrix(matchup %>% dplyr::select(one_of(cv_upset$glmnet.fit$beta@Dimnames[[1]])))
+    out <- predict(cv_upset, newx=x, s="lambda.min", type="response")[1]
+  }
   return(out)
 }
 
