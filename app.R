@@ -9,13 +9,13 @@ library(openxlsx)
 # load data ----
 source('src/ncaaHelpers.R')
 # read model
-cv_outcome <<- readRDS('data/models/cv_outcome_2023.rds')
+cv_outcome <<- readRDS('data/models/cv_outcome_2024.rds')
 # read tables
 masterTBL <<- readRDS('data/masterTBL.rds')
 statsTBL <<- readRDS('data/statsTBL.rds')
-teams <<- readRDS('data/teams2023.rds')
+teams <<- readRDS('data/teams2024.rds')
 # hyperparameters
-yr <<- 2023
+yr <<- 2024
 
 
 # user interface ----
@@ -30,7 +30,7 @@ ui <- fluidPage(
                            fluidRow(
                              column(width=12, 
                                     h4(HTML('<b>Select two teams to simulate a game</b><br/>
-                                            <i>(2023 season)</i>')),
+                                            <i>(2024 season)</i>')),
                                     # team 1
                                     selectInput(inputId='team1',
                                                 label='Team 1', 
@@ -81,7 +81,7 @@ ui <- fluidPage(
                            fluidRow(
                              column(width=12,
                                     h4(HTML('<b>Project a bracket</b><br/>
-                                            <i>(2021 season)</i>')),
+                                            <i>(2024 season)</i>')),
                                     numericInput(inputId='ss2',
                                                  label='Choose number of simulations',
                                                  value=1),

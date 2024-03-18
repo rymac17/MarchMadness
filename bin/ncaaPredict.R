@@ -11,7 +11,7 @@ masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv'
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 
 # model
-yr <- 2023
+yr <- 2024
 modelTBL <- filter(masterTBL, year!=yr)
 x <- as.matrix(select(modelTBL, 
                       GameT, GameO, GameD,
@@ -42,7 +42,7 @@ library(glmnet)
 library(openxlsx)
 source('src/ncaaHelpers.R')
 # hyperparameters
-yr <<- 2023
+yr <<- 2024
 sampleSize <<- 0
 # read model
 cv_outcome <- readRDS(paste0('data/models/cv_outcome_',yr,'.rds'))
@@ -54,10 +54,10 @@ teams <- read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/team
 teams[which(!teams$Team %in% (statsTBL %>% filter(year==yr) %>% pull(Team))),]
 
 # first four
-SIMgame(tbl1='Texas A&M Corpus Christi', tbl2='Southeast Missouri St', alacarte=T)
-SIMgame(tbl1='Texas Southern', tbl2='Fairleigh Dickinson', alacarte=T)
-SIMgame(tbl1='Arizona St', tbl2='Nevada', alacarte=T)
-SIMgame(tbl1='Mississippi St', tbl2='Pittsburgh', alacarte=T)
+SIMgame(tbl1='Wagner', tbl2='Howard', alacarte=T)
+SIMgame(tbl1='Colorado St', tbl2='Virginia', alacarte=T)
+SIMgame(tbl1='Grambling St', tbl2='Montana St', alacarte=T)
+SIMgame(tbl1='Colorado', tbl2='Boise St', alacarte=T)
 
 # upsets
 cv_upset <- readRDS(paste0('data/models/cv_upset_',yr,'.rds'))

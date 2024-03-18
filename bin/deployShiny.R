@@ -1,6 +1,5 @@
 
 library(dplyr)
-library(xlsx)
 library(rsconnect)
 
 # convert tables to .rds
@@ -10,19 +9,18 @@ read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv') %>%
 read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv') %>% 
   saveRDS(., 'data/statsTBL.rds')
 
-read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2023.xlsx', sheetName='Sheet1') %>% 
-  saveRDS(., 'data/teams2023.rds')
+openxlsx::read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2024.xlsx', sheet='Sheet1') %>% 
+  saveRDS(., 'data/teams2024.rds')
 
 
 # necessary files
 nf <- c('src/ncaaHelpers.R',
-        'data/models/cv_outcome_2023.rds',
+        'data/models/cv_outcome_2024.rds',
         'data/masterTBL.rds',
         'data/statsTBL.rds',
-        'data/teams2023.rds',
+        'data/teams2024.rds',
         'app.R')
 
 # change appName to create a new app, or dont to update
-deployApp(appFiles=nf,
-          appName='MarchMadness')
+rsconnect::deployApp(appFiles=nf, appName='MarchMadness')
 
