@@ -8,6 +8,7 @@ source('src/ncaaHelpers.R')
 
 # read tables
 masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
+# masterTBL <- masterTBL %>% filter(year %in% 2013:2024)
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 
 # model
@@ -20,16 +21,17 @@ x <- as.matrix(select(modelTBL,
 y <- as.matrix(select(modelTBL, outcome))
 set.seed(1011)
 cv_outcome <<- cv.glmnet(x, y, family="binomial", type.measure="auc", nfolds=10, alpha=1)
-coef(cv_outcome, s="lambda.min")
+round(cv_outcome$cvm[which(cv_outcome$lambda == cv_outcome$lambda.min)],2) # auc min
+coef(cv_outcome, s="lambda.1se")
 saveRDS(cv_outcome, paste0('data/models/cv_outcome_',yr,'.rds'))
 
 
-# upsets
-y <- as.matrix(select(modelTBL, upset))
-set.seed(1011)
-cv_upset <<- cv.glmnet(x, y, family="binomial", type.measure="auc", nfolds=10, alpha=1)
-coef(cv_upset, s="lambda.min")
-saveRDS(cv_upset, paste0('data/models/cv_upset_',yr,'.rds'))
+# # upsets
+# y <- as.matrix(select(modelTBL, upset))
+# set.seed(1011)
+# cv_upset <<- cv.glmnet(x, y, family="binomial", type.measure="auc", nfolds=10, alpha=1)
+# coef(cv_upset, s="lambda.min")
+# saveRDS(cv_upset, paste0('data/models/cv_upset_',yr,'.rds'))
 
 
 
@@ -50,7 +52,7 @@ cv_outcome <- readRDS(paste0('data/models/cv_outcome_',yr,'.rds'))
 masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 
-teams <- read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams',yr,'.xlsx'), sheet='Sheet1')
+teams <- openxlsx::read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams',yr,'.xlsx'), sheet='Sheet1')
 teams[which(!teams$Team %in% (statsTBL %>% filter(year==yr) %>% pull(Team))),]
 
 # first four
@@ -61,7 +63,8 @@ SIMgame(tbl1='Colorado', tbl2='Boise St', alacarte=T)
 
 # upsets
 cv_upset <- readRDS(paste0('data/models/cv_upset_',yr,'.rds'))
-SIMprob(t1='Houston', t2='Iowa', upset=T)
+SIMprob(t1='Connecticut', t2='Auburn')
+SIMprob(t1='Connecticut', t2='Auburn', upset=T)
 
 lapply(c(1, 2, 3, 4), function(j){
   rg <- teams %>% 
@@ -112,8 +115,8 @@ for (j in c(1, 2, 3, 4)){
 source('src/ncaaHelpers.R')
 masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
-yr=2023
-teams <- read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams',yr,'.xlsx'), sheet='Sheet1')
+yr=2024
+teams <- openxlsx::read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams',yr,'.xlsx'), sheet='Sheet1')
 cv_outcome <- readRDS(paste0('data/models/cv_outcome_',yr,'.rds'))
 sampleSize=1
 l <- lapply(c(1:100), function(x){
@@ -130,26 +133,62 @@ l <- lapply(c(1:100), function(x){
 out <- data.frame(region_number=l$region_number, team=l$winner, avgProb=rowMeans(l[3:ncol(l)], na.rm=T),
                   numFF=length(3:ncol(l)) - rowSums(is.na(l[3:ncol(l)])))
 arrange(out, desc(avgProb))
-# region_number        team    avgProb numFF
-# 1              1     Alabama 0.45085009    75
-# 2              3     Houston 0.44586638    66
-# 3              4        UCLA 0.32808093    44
-# 4              2      Purdue 0.28017350    37
-# 5              2   Tennessee 0.21401796    31
-# 6              3       Texas 0.19976726    27
-# 7              2   Marquette 0.14534325    16
-# 8              4 Connecticut 0.13225375    16
-# 9              4     Gonzaga 0.12334995    17
-# 10             4      Kansas 0.12306224    19
-# 11             1     Arizona 0.08667132    10
-# 12             2   Kansas St 0.05772687     6
-# 13             1      Baylor 0.04924508     5
-# 14             3      Xavier 0.04182126     7
-# 15             1   Creighton 0.04067276    10
-# 16             2    Kentucky 0.03397262     6
-# 17             4    St Marys 0.03289085     4
-# 18             2 Michigan St 0.01976937     1
-# 19             2        Duke 0.01928637     3
+
+# 2023
+# region_number        team    avgProb numFF      sw16
+# 1              1     Alabama 0.45085009    75     y
+# 2              3     Houston 0.44586638    66     y
+# 3              4        UCLA 0.32808093    44     y
+# 4              2      Purdue 0.28017350    37     n!
+# 5              2   Tennessee 0.21401796    31     y
+# 6              3       Texas 0.19976726    27     y
+# 7              2   Marquette 0.14534325    16     n!
+# 8              4 Connecticut 0.13225375    16     y
+# 9              4     Gonzaga 0.12334995    17     y
+# 10             4      Kansas 0.12306224    19     n!
+# 11             1     Arizona 0.08667132    10     n!
+# 12             2   Kansas St 0.05772687     6     y
+# 13             1      Baylor 0.04924508     5     n!
+# 14             3      Xavier 0.04182126     7     y
+# 15             1   Creighton 0.04067276    10     y
+# 16             2    Kentucky 0.03397262     6     n*
+# 17             4    St Marys 0.03289085     4     n*
+# 18             2 Michigan St 0.01976937     1     y
+# 19             2        Duke 0.01928637     3     n*
+# *were beat by a team higher on this list
+
+
+# 2024
+# region_number           team     avgProb numFF
+#             3        Houston 0.618258889    69
+#             4         Purdue 0.551774146    42
+#             1    Connecticut 0.533430733    49
+#             2        Arizona 0.410907177    33
+#             4      Tennessee 0.299811337    35
+#             2 North Carolina 0.266532512    25
+#             1         Auburn 0.228298100    22
+#             1        Iowa St 0.219025261    19
+#             2        Alabama 0.201385848    15
+#             3      Marquette 0.192656445    12
+#             2         Baylor 0.188600096    16
+#             4      Creighton 0.157194243    16
+#             3       Kentucky 0.140328992     4
+#             3           Duke 0.124969885     9
+#             1       Illinois 0.091749243     7
+#             2    Michigan St 0.067516893     3
+#             3     Texas Tech 0.058579990     2
+#             3      Wisconsin 0.043578332     2
+#             4         Kansas 0.041945581     2
+#             3        Florida 0.041176574     2
+#             4        Gonzaga 0.040882122     2
+#             2       St Marys 0.037364421     2
+#             1            BYU 0.023976062     3
+#             2     New Mexico 0.018312133     2
+#             2 Mississippi St 0.012246456     3
+#             4          Texas 0.010839751     1
+#             4    Colorado St 0.010473081     2
+#             2         Dayton 0.009874002     1
+
 
 
 # test on 2022
@@ -256,8 +295,8 @@ arrange(out, desc(avgProb))
 source('src/ncaaHelpers.R')
 masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
-yr=2023
-teams <- read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams',yr,'.xlsx'), sheet='Sheet1')
+yr=2024
+teams <- openxlsx::read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams',yr,'.xlsx'), sheet='Sheet1')
 stat='AdjEM'
 stat='AdjO'
 stat='AdjD'
@@ -272,7 +311,12 @@ mL <- lapply(c(1, 2, 3, 4), function(j){
 }) %>% do.call('c', .) %>% sort()
 mL
 
-
+lapply(c(1, 2, 3, 4), function(j){
+  rg <- teams %>% 
+    filter(region_number==j)
+  fld <- statsTBL %>% filter(year==yr) %>% filter(Team %in% rg$Team) %>% pull(stat)
+  return(mean(fld))
+  })
 
 # # second chance 2021
 # scTeams <- c('Gonzaga','Creighton','USC','Oregon','Baylor','Villanova','Arkansas','Oral Roberts',
@@ -369,3 +413,40 @@ mL
 # }
 # 
 # predDFT
+
+
+# champ game prob
+source('src/ncaaHelpers.R')
+masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
+statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
+yr=2024
+teams <- openxlsx::read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams',yr,'.xlsx'), sheet='Sheet1')
+cv_outcome <- readRDS(paste0('data/models/cv_outcome_',yr,'.rds'))
+sampleSize=1
+l <- lapply(c(1:100), function(x){
+  r <- mkBracket(use_historic=F)
+  predDFT <- data.frame()
+  for (i in 1:6){
+    r <- runRND(r, i)
+    predDFT <- rbind(predDFT, r %>%
+                       dplyr::select(round, region_number, region_name=Region, winner=Team, Seed, Prob=CumWinPct))
+  }
+  p <- predDFT %>% filter(round==6) %>% dplyr::select(winner, region_number, Prob)
+  return(p)
+}) %>% purrr::reduce(full_join, by=c('winner','region_number'))
+out <- data.frame(region_number=l$region_number, team=l$winner, avgProb=rowMeans(l[3:ncol(l)], na.rm=T),
+                  numCG=length(3:ncol(l)) - rowSums(is.na(l[3:ncol(l)])))
+arrange(out, desc(avgProb))
+
+
+
+
+
+# from espn
+espn_stats <- statsTBL %>% 
+  filter(year==2021) %>% 
+  mutate(OffRnk=rank(desc(AdjO)),
+         DefRnk=rank(AdjD))
+filter(espn_stats, OffRnk<=25 & OffRnk+DefRnk<50) %>% 
+  mutate(combo=OffRnk+DefRnk) %>% 
+  arrange(combo)

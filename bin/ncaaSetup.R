@@ -18,6 +18,7 @@ scrape_kenpom(2024)
 # load stats
 stats <- do.call('rbind',
                  lapply(list.files('C:/Users/ryanm/Dropbox/R/MarchMadness_data/kenpom', '.csv$', full.names=T), FUN=read.csv))
+stats[which(stats$Team=='Louisiana'), 'Team'] <- 'Louisiana Lafayette' # fix issue with names
 write.csv(stats, 'C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv', row.names=F)
 
 # load scores - from https://data.world/michaelaroy/ncaa-tournament-results (1985-2019)
@@ -50,13 +51,13 @@ write.csv(masterTBL, 'C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv',
 
 
 
-# 
-# ### check stats
-# library(dplyr)
-# statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
-# masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
-# teamsTBL <- openxlsx::read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2024.xlsx', sheet='Sheet1')
-# 
+
+### check stats
+library(dplyr)
+statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
+masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
+teamsTBL <- openxlsx::read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2024.xlsx', sheet='Sheet1')
+
 # t <- 'Houston'
 # left_join(
 #   masterTBL %>% 
@@ -89,33 +90,33 @@ write.csv(masterTBL, 'C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv',
 # historicalStats %>% group_by(seed_2) %>% summarise(cumprob=sum(pctUpsets)) %>% arrange(cumprob)
 # 
 # 
-# # average AdjEM for seed
-# avgSeedLUT <- rbind(masterTBL %>% dplyr::select(SEED=seed, KP=AdjEM), masterTBL %>% dplyr::select(SEED=seed_2, KP=AdjEM_2)) %>% 
-#   group_by(SEED) %>% 
-#   summarise(MIN=quantile(KP, probs=0), 
-#             Q1=quantile(KP, probs=.25), 
-#             MED=quantile(KP, probs=.5),
-#             AVG=mean(KP),
-#             Q3=quantile(KP, probs=.75),
-#             MAX=quantile(KP, probs=1))
-# 
-# # which teams are better than an average of that seed?
-# seedTest <- left_join(teamsTBL, statsTBL %>% filter(year==2023), by='Team') %>% 
-#   left_join(., avgSeedLUT, by=c('Seed'='SEED')) %>% 
-#   mutate(plusMinus=AdjEM-AVG) %>% 
-#   arrange(desc(plusMinus))
-# 
-# df <- rbind(masterTBL %>% dplyr::select(seed, Rk, AdjEM, AdjO, AdjD, AdjT, Luck, AdjEM.1, OppO, OppD, Wins, Losses, OppEM),
-#             masterTBL %>% dplyr::select(seed=seed_2, Rk=Rk_2, AdjEM=AdjEM_2, AdjO=AdjO_2, AdjD=AdjD_2, AdjT=AdjT_2, Luck=Luck_2, 
-#                                         AdjEM.1=AdjEM.1_2, OppO=OppO_2, OppD=OppD_2, Wins=Wins_2, Losses=Losses_2, OppEM=OppEM_2)) %>% 
-#   mutate(seed=factor(seed))
-# 
-# library(randomForest)
-# forest <- randomForest(seed ~ ., data=df, importance=T, proximity=T)
-# print(forest)
-# 
-# seedTest['rf_seed'] <- predict(forest, seedTest)
-# seedTBL <- seedTest %>% 
-#   dplyr::select(Team, Seed, rf_seed, plusMinus) %>% 
-#   mutate(reseedMargin=as.numeric(Seed)-as.numeric(rf_seed)) %>% 
-#   arrange(desc(plusMinus))
+# average AdjEM for seed
+avgSeedLUT <- rbind(masterTBL %>% dplyr::select(SEED=seed, KP=AdjEM), masterTBL %>% dplyr::select(SEED=seed_2, KP=AdjEM_2)) %>%
+  group_by(SEED) %>%
+  summarise(MIN=quantile(KP, probs=0),
+            Q1=quantile(KP, probs=.25),
+            MED=quantile(KP, probs=.5),
+            AVG=mean(KP),
+            Q3=quantile(KP, probs=.75),
+            MAX=quantile(KP, probs=1))
+
+# which teams are better than an average of that seed?
+seedTest <- left_join(teamsTBL, statsTBL %>% filter(year==2024), by='Team') %>%
+  left_join(., avgSeedLUT, by=c('Seed'='SEED')) %>%
+  mutate(plusMinus=AdjEM-AVG) %>%
+  arrange(desc(plusMinus))
+
+df <- rbind(masterTBL %>% dplyr::select(seed, Rk, AdjEM, AdjO, AdjD, AdjT, Luck, AdjEM.1, OppO, OppD, Wins, Losses, OppEM),
+            masterTBL %>% dplyr::select(seed=seed_2, Rk=Rk_2, AdjEM=AdjEM_2, AdjO=AdjO_2, AdjD=AdjD_2, AdjT=AdjT_2, Luck=Luck_2,
+                                        AdjEM.1=AdjEM.1_2, OppO=OppO_2, OppD=OppD_2, Wins=Wins_2, Losses=Losses_2, OppEM=OppEM_2)) %>%
+  mutate(seed=factor(seed))
+
+library(randomForest)
+forest <- randomForest(seed ~ ., data=df, importance=T, proximity=T)
+print(forest)
+
+seedTest['rf_seed'] <- predict(forest, seedTest)
+seedTBL <- seedTest %>%
+  dplyr::select(Team, Seed, rf_seed, plusMinus) %>%
+  mutate(reseedMargin=as.numeric(Seed)-as.numeric(rf_seed)) %>%
+  arrange(desc(plusMinus))
