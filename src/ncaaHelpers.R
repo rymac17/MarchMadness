@@ -10,14 +10,15 @@ scrape_kenpom <- function(yr, date=NULL){
     html_nodes(., 'table') %>% 
     html_table(., fill=TRUE, header=F) %>% 
     .[[1]]
+  # remove extra ranks and NCSOS
+  tbl <- tbl[,-c(7,9,11,13,15,17,19,20,21)]
   # rename columns
-  colnames(tbl) <- tbl[2,] %>% unlist()
-  # remove extra ranks
-  tbl <- tbl[,-c(7,9,11,13,15,17,19,21)]
-  # rename 'AdjEM' cols
-  names(tbl)[which(names(tbl)=='AdjEM')] <- paste0(names(tbl)[which(names(tbl)=='AdjEM')],c('','.1','.2'))
+  colnames(tbl) <- c("Rk","Team","Conf","W-L","AdjEM","AdjO","AdjD","AdjT","Luck",
+                     "AdjEM.1","OppO","OppD")
   # remove old headers
   tbl <- tbl %>% dplyr::filter(Rk!='' & Rk!='Rk')
+  # strip seed from Team name
+  tbl$Team <- trimws(gsub(pattern='[0-9]', replacement='', x=tbl$Team))
   # change data type
   tbl <- tbl %>% 
     mutate(Rk=as.numeric(Rk),
@@ -84,6 +85,7 @@ fixNM <- function(s){
     if (grepl('LIU Brooklyn$', out)){ out <- 'Long Island Brooklyn'}
     if (grepl('Loyola MD$', out)){ out <- 'Loyola Maryland'}
     if (grepl('UTSA$', out)){ out <- 'Texas San Antonio'}
+
     return(out)
   }, USE.NAMES=F)
 }

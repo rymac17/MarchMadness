@@ -11,6 +11,7 @@ source('src/ncaaHelpers.R')
 scrape_kenpom(2022)
 scrape_kenpom(2023)
 scrape_kenpom(2024)
+scrape_kenpom(2025)
 
 # scrape_kenpom(2022, date=032122)
 
@@ -23,7 +24,7 @@ write.csv(stats, 'C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv', row.
 
 # load scores - from https://data.world/michaelaroy/ncaa-tournament-results (1985-2019)
 scores <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/past_results/big_dance_csv.csv') %>% 
-  filter(year %in% 2002:2023)
+  filter(year %in% 2002:2024)
 scores[which(scores$team_2=='Cal Irvine'), 'team_2'] <- 'UC Irvine' # fix issue with names
 # arrange scores so higher seed is first
 scores <- rbind(scores %>% filter(seed<=seed_2),
