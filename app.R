@@ -30,7 +30,7 @@ ui <- fluidPage(
                            fluidRow(
                              column(width=12, 
                                     h4(HTML('<b>Select two teams to simulate a game</b><br/>
-                                            <i>(2024 season)</i>')),
+                                            <i>(2025 season)</i>')),
                                     # team 1
                                     selectInput(inputId='team1',
                                                 label='Team 1', 
