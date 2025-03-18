@@ -20,6 +20,7 @@ scrape_kenpom(2025)
 stats <- do.call('rbind',
                  lapply(list.files('C:/Users/ryanm/Dropbox/R/MarchMadness_data/kenpom', '.csv$', full.names=T), FUN=read.csv))
 stats[which(stats$Team=='Louisiana'), 'Team'] <- 'Louisiana Lafayette' # fix issue with names
+stats <- dplyr::select(stats, -AdjEM.1) # drop duplicate
 write.csv(stats, 'C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv', row.names=F)
 
 # load scores - from https://data.world/michaelaroy/ncaa-tournament-results (1985-2019)
@@ -102,7 +103,7 @@ avgSeedLUT <- rbind(masterTBL %>% dplyr::select(SEED=seed, KP=AdjEM), masterTBL 
             MAX=quantile(KP, probs=1))
 
 # which teams are better than an average of that seed?
-seedTest <- left_join(teamsTBL, statsTBL %>% filter(year==2024), by='Team') %>%
+seedTest <- left_join(teamsTBL, statsTBL %>% filter(year==2025), by='Team') %>%
   left_join(., avgSeedLUT, by=c('Seed'='SEED')) %>%
   mutate(plusMinus=AdjEM-AVG) %>%
   arrange(desc(plusMinus))
