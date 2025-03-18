@@ -92,7 +92,7 @@ fixNM <- function(s){
 
 # estimate probability team1 wins based on model
 # requires statsTBL and cv_outcome
-SIMprob <- function(t1, t2, YR=yr, upset=F){
+SIMprob <- function(t1, t2, YR=yr, upset=F, inherit.lambda){
   matchup <- left_join(statsTBL %>% filter(year==YR & Team==t1),
                        statsTBL %>% filter(year==YR & Team==t2),
                        by='year', suffix=c('','_2')) %>% 
@@ -100,8 +100,13 @@ SIMprob <- function(t1, t2, YR=yr, upset=F){
            GameO=AdjO-AdjD_2,
            GameD=AdjD-AdjO_2)
   x <- as.matrix(matchup %>% dplyr::select(one_of(cv_outcome$glmnet.fit$beta@Dimnames[[1]]))) # use whatever vars model used
-  # out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1]
-  out <- predict(cv_outcome, newx=x, s="lambda.1se", type="response")[1]
+  if (length(inherit.lambda)>1){
+    out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1]
+  } else if (inherit.lambda=='min'){
+    out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1]
+  } else if (inherit.lambda=='1se'){
+    out <- predict(cv_outcome, newx=x, s="lambda.1se", type="response")[1]
+  }
   if (upset==T){
     x <- as.matrix(matchup %>% dplyr::select(one_of(cv_upset$glmnet.fit$beta@Dimnames[[1]])))
     out <- predict(cv_upset, newx=x, s="lambda.min", type="response")[1]
@@ -111,10 +116,10 @@ SIMprob <- function(t1, t2, YR=yr, upset=F){
 
 # simulates a game based on model probability, can be used to determine winner of hypothetical series
 # use alacarte to enter two teams and a year
-SIMgame <- function(tbl1, tbl2, SS=sampleSize, alacarte=F){
+SIMgame <- function(tbl1, tbl2, SS=sampleSize, alacarte=F, lambda=c('min','1se')){
   if (alacarte==F){
-    highW <- SIMprob(t1=tbl1$Team, t2=tbl2$Team) # prob that high seed wins
-    lowW <- SIMprob(t2=tbl1$Team, t1=tbl2$Team) # prob that low seed wins
+    highW <- SIMprob(t1=tbl1$Team, t2=tbl2$Team, inherit.lambda=lambda) # prob that high seed wins
+    lowW <- SIMprob(t2=tbl1$Team, t1=tbl2$Team, inherit.lambda=lambda) # prob that low seed wins
     dft <- data.frame(team_1=tbl1$Team, team_2=tbl2$Team, 
                       CumWinPct_1=tbl1$CumWinPct, CumWinPct_2=tbl2$CumWinPct,
                       winP_1=highW, winP_2=lowW)
@@ -143,8 +148,8 @@ SIMgame <- function(tbl1, tbl2, SS=sampleSize, alacarte=F){
                CumWinPct=ifelse(Advance==1, winP_1*CumWinPct_1, winP_2*CumWinPct_2))
     }
   } else {
-    highW <- SIMprob(tbl1, tbl2)
-    lowW <- SIMprob(tbl2, tbl1)
+    highW <- SIMprob(tbl1, tbl2, inherit.lambda=lambda)
+    lowW <- SIMprob(tbl2, tbl1, inherit.lambda=lambda)
     dft <- data.frame(team_1=tbl1, team_2=tbl2, winP_1=highW, winP_2=lowW)
     if (SS==1){
       dft <- dft %>% 

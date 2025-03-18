@@ -21,7 +21,8 @@ x <- as.matrix(select(modelTBL,
 y <- as.matrix(select(modelTBL, outcome))
 set.seed(1011)
 cv_outcome <<- cv.glmnet(x, y, family="binomial", type.measure="auc", 
-                         nfolds=10, alpha=1, relax=F)
+                         nfolds=10, alpha=1)
+round(cv_outcome$cvm[which(cv_outcome$lambda == cv_outcome$lambda.1se)],2) # auc 1se
 round(cv_outcome$cvm[which(cv_outcome$lambda == cv_outcome$lambda.min)],2) # auc min
 coef(cv_outcome, s="lambda.1se")
 coef(cv_outcome, s="lambda.min")
