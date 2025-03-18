@@ -100,13 +100,8 @@ SIMprob <- function(t1, t2, YR=yr, upset=F){
            GameO=AdjO-AdjD_2,
            GameD=AdjD-AdjO_2)
   x <- as.matrix(matchup %>% dplyr::select(one_of(cv_outcome$glmnet.fit$beta@Dimnames[[1]]))) # use whatever vars model used
-  # if (matchup$Rk < matchup$Rk_2){
-  #   out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1] *
-  #     (1-predict(cv_upset, newx=x, s="lambda.min", type="response")[1])
-  # } else {
-  #   out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1]
-  # }
-  out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1]
+  # out <- predict(cv_outcome, newx=x, s="lambda.min", type="response")[1]
+  out <- predict(cv_outcome, newx=x, s="lambda.1se", type="response")[1]
   if (upset==T){
     x <- as.matrix(matchup %>% dplyr::select(one_of(cv_upset$glmnet.fit$beta@Dimnames[[1]])))
     out <- predict(cv_upset, newx=x, s="lambda.min", type="response")[1]

@@ -9,13 +9,13 @@ library(openxlsx)
 # load data ----
 source('src/ncaaHelpers.R')
 # read model
-cv_outcome <<- readRDS('data/models/cv_outcome_2024.rds')
+cv_outcome <<- readRDS('data/models/cv_outcome_2025.rds')
 # read tables
 masterTBL <<- readRDS('data/masterTBL.rds')
 statsTBL <<- readRDS('data/statsTBL.rds')
-teams <<- readRDS('data/teams2024.rds')
+teams <<- readRDS('data/teams2025.rds')
 # hyperparameters
-yr <<- 2024
+yr <<- 2025
 
 
 # user interface ----

@@ -12,7 +12,7 @@ masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv'
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 
 # model
-yr <- 2024
+yr <- 2025
 modelTBL <- filter(masterTBL, year!=yr)
 x <- as.matrix(select(modelTBL, 
                       GameT, GameO, GameD,
@@ -20,9 +20,11 @@ x <- as.matrix(select(modelTBL,
                       AdjEM_2, AdjO_2, AdjD_2, AdjT_2, OppO_2, OppD_2, OppEM_2))
 y <- as.matrix(select(modelTBL, outcome))
 set.seed(1011)
-cv_outcome <<- cv.glmnet(x, y, family="binomial", type.measure="auc", nfolds=10, alpha=1)
+cv_outcome <<- cv.glmnet(x, y, family="binomial", type.measure="auc", 
+                         nfolds=10, alpha=1, relax=F)
 round(cv_outcome$cvm[which(cv_outcome$lambda == cv_outcome$lambda.min)],2) # auc min
 coef(cv_outcome, s="lambda.1se")
+coef(cv_outcome, s="lambda.min")
 saveRDS(cv_outcome, paste0('data/models/cv_outcome_',yr,'.rds'))
 
 
@@ -44,7 +46,7 @@ library(glmnet)
 library(openxlsx)
 source('src/ncaaHelpers.R')
 # hyperparameters
-yr <<- 2024
+yr <<- 2025
 sampleSize <<- 0
 # read model
 cv_outcome <- readRDS(paste0('data/models/cv_outcome_',yr,'.rds'))
@@ -56,10 +58,10 @@ teams <- openxlsx::read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/
 teams[which(!teams$Team %in% (statsTBL %>% filter(year==yr) %>% pull(Team))),]
 
 # first four
-SIMgame(tbl1='Wagner', tbl2='Howard', alacarte=T)
-SIMgame(tbl1='Colorado St', tbl2='Virginia', alacarte=T)
-SIMgame(tbl1='Grambling St', tbl2='Montana St', alacarte=T)
-SIMgame(tbl1='Colorado', tbl2='Boise St', alacarte=T)
+SIMgame(tbl1='Alabama St', tbl2='St Francis', alacarte=T)
+SIMgame(tbl1='Texas', tbl2='Xavier', alacarte=T)
+SIMgame(tbl1='American', tbl2='Mount St Marys', alacarte=T)
+SIMgame(tbl1='San Diego St', tbl2='North Carolina', alacarte=T)
 
 # upsets
 cv_upset <- readRDS(paste0('data/models/cv_upset_',yr,'.rds'))
@@ -115,7 +117,7 @@ for (j in c(1, 2, 3, 4)){
 source('src/ncaaHelpers.R')
 masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
-yr=2024
+yr=2025
 teams <- openxlsx::read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams',yr,'.xlsx'), sheet='Sheet1')
 cv_outcome <- readRDS(paste0('data/models/cv_outcome_',yr,'.rds'))
 sampleSize=1

@@ -57,7 +57,7 @@ write.csv(masterTBL, 'C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv',
 library(dplyr)
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
-teamsTBL <- openxlsx::read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2024.xlsx', sheet='Sheet1')
+teamsTBL <- openxlsx::read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2025.xlsx', sheet='Sheet1')
 
 # t <- 'Houston'
 # left_join(
