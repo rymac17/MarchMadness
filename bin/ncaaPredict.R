@@ -13,6 +13,7 @@ statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 
 # model
 yr <- 2025
+# modelTBL <- filter(masterTBL, year!=yr & round==1)
 modelTBL <- filter(masterTBL, year!=yr)
 x <- as.matrix(select(modelTBL, 
                       GameT, GameO, GameD,
