@@ -8,10 +8,11 @@ source('src/ncaaHelpers.R')
 # lapply(2002:2021, FUN=scrape_kenpom)
 
 # update
-scrape_kenpom(2022)
-scrape_kenpom(2023)
-scrape_kenpom(2024)
-scrape_kenpom(2025)
+# scrape_kenpom(2022)
+# scrape_kenpom(2023)
+# scrape_kenpom(2024)
+# scrape_kenpom(2025)
+scrape_kenpom(2026)
 
 # scrape_kenpom(2022, date=032122)
 
