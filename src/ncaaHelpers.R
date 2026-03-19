@@ -14,10 +14,8 @@ scrape_kenpom <- function(yr, date=NULL){
   tbl <- tbl[,-c(7,9,11,13,15,17,19,20,21)]
   # rename columns
   colnames(tbl) <- tbl[2,] %>% unlist()
-  # remove extra ranks
-  tbl <- tbl[,-c(7,9,11,13,15,17,19,21)]
   # rename cols
-  names(tbl) <- c('Rk','Team','Conf','W-L','AdjEM','AdjO','AdjD','AdjT','Luck','AdjEM.1','OppO','OppD','OppEM')
+  names(tbl) <- c('Rk','Team','Conf','W-L','AdjEM','AdjO','AdjD','AdjT','Luck','AdjEM.1','OppO','OppD')
   # remove old headers
   tbl <- tbl %>% dplyr::filter(Rk!='' & Rk!='Rk')
   # strip seed from Team name
@@ -184,7 +182,7 @@ runRND <- function(teamsIN, rnd){
     l <- lapply(t %>% pull(id) %>% unique(), function(x){
       highSD <- t %>% filter(id==x) %>% slice_min(Seed)
       lowSD <- t %>% filter(id==x) %>% slice_max(Seed)
-      SIMgame(tbl1=highSD, tbl2=lowSD) # requires yr to be defined
+      SIMgame(tbl1=highSD, tbl2=lowSD, lambda='min') # requires yr to be defined
     }) %>% 
       do.call('rbind',.) %>% 
       as.data.frame()

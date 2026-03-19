@@ -25,8 +25,9 @@ stats <- dplyr::select(stats, -AdjEM.1) # drop duplicate
 write.csv(stats, 'C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv', row.names=F)
 
 # load scores - from https://data.world/michaelaroy/ncaa-tournament-results (1985-2019)
-scores <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/past_results/big_dance_csv.csv') %>% 
-  filter(year %in% 2002:2024)
+scores <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/past_results/big_dance_csv.csv')
+scores <- scores %>% 
+  filter(year %in% 2002:max(scores$year))
 scores[which(scores$team_2=='Cal Irvine'), 'team_2'] <- 'UC Irvine' # fix issue with names
 # arrange scores so higher seed is first
 scores <- rbind(scores %>% filter(seed<=seed_2),
@@ -40,6 +41,11 @@ left_join(scores, stats, by=c('team'='Team','year'='year')) %>%
   filter(is.na(Conf)) %>% pull(team) %>% unique()
 left_join(scores, stats, by=c('team_2'='Team','year'='year')) %>% 
   filter(is.na(Conf)) %>% pull(team_2) %>% unique()
+
+# test if teams table has any bad names
+teams <- openxlsx::read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2026.xlsx', sheet='Sheet1')
+left_join(teams, dplyr::filter(stats, year=='2026'), by=c('Team')) |> 
+  dplyr::filter(is.na(Conf)) |> pull(Team) 
 
 # join
 masterTBL <- left_join(scores, stats, by=c('team'='Team','year'='year')) %>% 
@@ -59,7 +65,7 @@ write.csv(masterTBL, 'C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv',
 library(dplyr)
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
-teamsTBL <- openxlsx::read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2025.xlsx', sheet='Sheet1')
+teamsTBL <- openxlsx::read.xlsx('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams2026.xlsx', sheet='Sheet1')
 
 # t <- 'Houston'
 # left_join(
@@ -104,14 +110,14 @@ avgSeedLUT <- rbind(masterTBL %>% dplyr::select(SEED=seed, KP=AdjEM), masterTBL 
             MAX=quantile(KP, probs=1))
 
 # which teams are better than an average of that seed?
-seedTest <- left_join(teamsTBL, statsTBL %>% filter(year==2025), by='Team') %>%
+seedTest <- left_join(teamsTBL, statsTBL %>% filter(year==2026), by='Team') %>%
   left_join(., avgSeedLUT, by=c('Seed'='SEED')) %>%
   mutate(plusMinus=AdjEM-AVG) %>%
   arrange(desc(plusMinus))
 
-df <- rbind(masterTBL %>% dplyr::select(seed, Rk, AdjEM, AdjO, AdjD, AdjT, Luck, AdjEM.1, OppO, OppD, Wins, Losses, OppEM),
+df <- rbind(masterTBL %>% dplyr::select(seed, Rk, AdjEM, AdjO, AdjD, AdjT, Luck, OppEM, OppO, OppD, Wins, Losses),
             masterTBL %>% dplyr::select(seed=seed_2, Rk=Rk_2, AdjEM=AdjEM_2, AdjO=AdjO_2, AdjD=AdjD_2, AdjT=AdjT_2, Luck=Luck_2,
-                                        AdjEM.1=AdjEM.1_2, OppO=OppO_2, OppD=OppD_2, Wins=Wins_2, Losses=Losses_2, OppEM=OppEM_2)) %>%
+                                        OppEM=OppEM_2, OppO=OppO_2, OppD=OppD_2, Wins=Wins_2, Losses=Losses_2, OppEM=OppEM_2)) %>%
   mutate(seed=factor(seed))
 
 library(randomForest)

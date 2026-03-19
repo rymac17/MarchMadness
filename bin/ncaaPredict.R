@@ -8,11 +8,11 @@ source('src/ncaaHelpers.R')
 
 # read tables
 masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
-# masterTBL <- masterTBL %>% filter(year %in% 2013:2024)
+masterTBL <- masterTBL %>% filter(year %in% 2021:2025) # only pre tournament data
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 
 # model
-yr <- 2025
+yr <- 2026
 # modelTBL <- filter(masterTBL, year!=yr & round==1)
 modelTBL <- filter(masterTBL, year!=yr)
 x <- as.matrix(select(modelTBL, 
@@ -48,78 +48,78 @@ library(glmnet)
 library(openxlsx)
 source('src/ncaaHelpers.R')
 # hyperparameters
-yr <<- 2025
+yr <<- 2026
 sampleSize <<- 0
 # read model
 cv_outcome <- readRDS(paste0('data/models/cv_outcome_',yr,'.rds'))
 # read tables
-masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
+# masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
 
 teams <- openxlsx::read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams',yr,'.xlsx'), sheet='Sheet1')
 teams[which(!teams$Team %in% (statsTBL %>% filter(year==yr) %>% pull(Team))),]
 
 # first four
-SIMgame(tbl1='Alabama St', tbl2='St Francis', alacarte=T)
-SIMgame(tbl1='Texas', tbl2='Xavier', alacarte=T)
-SIMgame(tbl1='American', tbl2='Mount St Marys', alacarte=T)
-SIMgame(tbl1='San Diego St', tbl2='North Carolina', alacarte=T)
+SIMgame(tbl1='Lehigh', tbl2='Prairie View A&M', alacarte=T, lambda='min')
+SIMgame(tbl1='Texas', tbl2='NC State', alacarte=T, lambda='min')
+SIMgame(tbl1='UMBC', tbl2='Howard', alacarte=T, lambda='min')
+SIMgame(tbl1='Miami Ohio', tbl2='SMU', alacarte=T, lambda='min')
 
-# upsets
-cv_upset <- readRDS(paste0('data/models/cv_upset_',yr,'.rds'))
-SIMprob(t1='Connecticut', t2='Auburn')
-SIMprob(t1='Connecticut', t2='Auburn', upset=T)
+# # upsets
+# cv_upset <- readRDS(paste0('data/models/cv_upset_',yr,'.rds'))
+# SIMprob(t1='Connecticut', t2='Auburn')
+# SIMprob(t1='Connecticut', t2='Auburn', upset=T)
 
-lapply(c(1, 2, 3, 4), function(j){
-  rg <- teams %>% 
-    filter(region_number==j)
-  l <- lapply(rg$Team[1:11], function(t){
-    sed <- rg %>% filter(Team==t) %>% pull(Seed)
-    opp <- rg %>% filter(Team!=t) %>% filter(Seed>=sed+5) %>% pull(Team)
-    fld <- sapply(opp, function(x) SIMprob(t1=t, t2=x, upset=T)) %>% 
-      as.list() %>% 
-      as.data.frame()
-    return(fld)
-  }) %>% 
-    do.call('bind_rows',.)
-  rownames(l) <- rg$Team[1:11]
-  # print(l)
-  return(rowMeans(l, na.rm=T))
-}) %>% 
-  do.call('c',.) %>% 
-  sort() %>% 
-  as.list() %>% 
-  data.frame()
-
-
+# lapply(c(1, 2, 3, 4), function(j){
+#   rg <- teams %>% 
+#     filter(region_number==j)
+#   l <- lapply(rg$Team[1:11], function(t){
+#     sed <- rg %>% filter(Team==t) %>% pull(Seed)
+#     opp <- rg %>% filter(Team!=t) %>% filter(Seed>=sed+5) %>% pull(Team)
+#     fld <- sapply(opp, function(x) SIMprob(t1=t, t2=x, upset=T)) %>% 
+#       as.list() %>% 
+#       as.data.frame()
+#     return(fld)
+#   }) %>% 
+#     do.call('bind_rows',.)
+#   rownames(l) <- rg$Team[1:11]
+#   # print(l)
+#   return(rowMeans(l, na.rm=T))
+# }) %>% 
+#   do.call('c',.) %>% 
+#   sort() %>% 
+#   as.list() %>% 
+#   data.frame()
 
 
-# regions ----
-for (j in c(1, 2, 3, 4)){
-  rg <- teams %>% 
-    filter(region_number==j)
-  lapply(rg$Team, function(i){
-    opp <- setdiff(rg$Team, i)
-    fld <- lapply(opp, function(x) SIMgame(tbl1=i, tbl2=x, SS=10, alacarte=T)) %>% 
-      do.call('rbind', .) %>% 
-      mutate(winPdiff=winP_1-winP_2) %>% 
-      group_by(team_1) %>% 
-      summarise(CumWinP=sum(winPdiff))
-    return(fld)
-  }) %>% 
-    do.call('rbind',.) %>% 
-    arrange(desc(CumWinP)) %>% 
-    print(.)
-}  
+
+
+# # regions ----
+# for (j in c(1, 2, 3, 4)){
+#   rg <- teams %>% 
+#     filter(region_number==j)
+#   lapply(rg$Team, function(i){
+#     opp <- setdiff(rg$Team, i)
+#     fld <- lapply(opp, function(x) SIMgame(tbl1=i, tbl2=x, SS=10, alacarte=T)) %>% 
+#       do.call('rbind', .) %>% 
+#       mutate(winPdiff=winP_1-winP_2) %>% 
+#       group_by(team_1) %>% 
+#       summarise(CumWinP=sum(winPdiff))
+#     return(fld)
+#   }) %>% 
+#     do.call('rbind',.) %>% 
+#     arrange(desc(CumWinP)) %>% 
+#     print(.)
+# }  
 
 
 
 
 # final four prob ----
 source('src/ncaaHelpers.R')
-masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
+# masterTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/masterTBL.csv')
 statsTBL <- read.csv('C:/Users/ryanm/Dropbox/R/MarchMadness_data/statsTBL.csv')
-yr=2025
+yr=2026
 teams <- openxlsx::read.xlsx(paste0('C:/Users/ryanm/Dropbox/R/MarchMadness_data/teams/teams',yr,'.xlsx'), sheet='Sheet1')
 cv_outcome <- readRDS(paste0('data/models/cv_outcome_',yr,'.rds'))
 sampleSize=1
@@ -137,6 +137,62 @@ l <- lapply(c(1:100), function(x){
 out <- data.frame(region_number=l$region_number, team=l$winner, avgProb=rowMeans(l[3:ncol(l)], na.rm=T),
                   numFF=length(3:ncol(l)) - rowSums(is.na(l[3:ncol(l)])))
 arrange(out, desc(avgProb))
+
+# 2026
+# region_number           team     avgProb numFF
+# 1              1           Duke 0.696043619    50
+# 2              4       Michigan 0.574089131    40
+# 3              3        Arizona 0.554679028    32
+# 4              2       Illinois 0.509051321    26
+# 5              3         Purdue 0.503926181    22
+# 6              2        Florida 0.471220639    16
+# 7              2        Houston 0.465427751    22
+# 8              1    Michigan St 0.395169360    19
+# 9              4        Iowa St 0.352958418    18
+# 10             1    Connecticut 0.324235457    14
+# 11             2     Vanderbilt 0.282002728    13
+# 12             4       Virginia 0.205393145    11
+# 13             3        Gonzaga 0.198487154    12
+# 14             4        Alabama 0.197757710    12
+# 15             1         Kansas 0.187781450     1
+# 16             3       Arkansas 0.186307069    17
+# 17             4      Tennessee 0.184691222     9
+# 18             4     Texas Tech 0.143651985     4
+# 19             3      Wisconsin 0.134346702     6
+# 20             2       Nebraska 0.132252630     7
+# 21             1           UCLA 0.127320452     5
+# 22             1     Louisville 0.114679665     6
+# 23             1        Ohio St 0.096149219     4
+# 24             2           Iowa 0.095759844     1
+# 25             1       St Johns 0.089768441     1
+# 26             3            BYU 0.078014888     4
+# 27             4       Kentucky 0.074820952     4
+# 28             3          Texas 0.068707559     1
+# 29             2       St Marys 0.068309276     5
+# 30             3          Miami 0.050127461     2
+# 31             2 North Carolina 0.047781630     4
+# 32             4        Georgia 0.035079940     2
+# 33             2        Clemson 0.028770880     2
+# 34             2      Texas A&M 0.027289855     2
+# 35             3      Villanova 0.024931239     1
+# 36             3       Missouri 0.021188595     2
+# 37             3        Utah St 0.019307958     1
+# 38             2            VCU 0.008589269     2
+
+#    region_number        team    avgProb numFF
+# 1              1        Duke 0.77371484    96
+# 2              3     Arizona 0.72080293    70
+# 3              4    Michigan 0.70760586    83
+# 4              2     Florida 0.47860234    33
+# 5              2     Houston 0.33436001    33
+# 6              2    Illinois 0.33191555    21
+# 7              3      Purdue 0.30694444    26
+# 8              4     Iowa St 0.21472251    17
+# 9              1 Michigan St 0.10937823     4
+# 10             2  Vanderbilt 0.08257015    12
+# 11             3    Arkansas 0.06954676     4
+# 12             2    Nebraska 0.03863514     1
+
 
 # 2023
 # region_number        team    avgProb numFF      sw16

@@ -9,13 +9,13 @@ library(openxlsx)
 # load data ----
 source('src/ncaaHelpers.R')
 # read model
-cv_outcome <<- readRDS('data/models/cv_outcome_2025.rds')
+cv_outcome <<- readRDS('data/models/cv_outcome_2026.rds')
 # read tables
 masterTBL <<- readRDS('data/masterTBL.rds')
 statsTBL <<- readRDS('data/statsTBL.rds')
-teams <<- readRDS('data/teams2025.rds')
+teams <<- readRDS('data/teams2026.rds')
 # hyperparameters
-yr <<- 2025
+yr <<- 2026
 
 
 # user interface ----
@@ -29,18 +29,11 @@ ui <- fluidPage(
                          sidebarPanel(
                            fluidRow(
                              column(width=12, 
-                                    h4(HTML('<b>Select two teams to simulate a game</b><br/>
-                                            <i>(2025 season)</i>')),
+                                    h4(HTML('<b>Select two teams to simulate a game</b>')),
                                     # team 1
-                                    selectInput(inputId='team1',
-                                                label='Team 1', 
-                                                selected=NULL,
-                                                choices=statsTBL$Team %>% sort()),
+                                    selectizeInput(inputId = 'team1', label = 'Team 1', selected = NULL, choices = NULL),
                                     # team 2
-                                    selectInput(inputId='team2',
-                                                label='Team 2',
-                                                selected=NULL, 
-                                                choices=statsTBL$Team %>% sort()),
+                                    selectizeInput(inputId = 'team2', label = 'Team 2', selected = NULL, choices = NULL),
                                     numericInput(inputId='ss1',
                                                  label='Choose number of simulations', 
                                                  value=1),
@@ -80,8 +73,7 @@ ui <- fluidPage(
                          sidebarPanel(
                            fluidRow(
                              column(width=12,
-                                    h4(HTML('<b>Project a bracket</b><br/>
-                                            <i>(2024 season)</i>')),
+                                    h4(HTML('<b>Project a bracket</b><br/>')),
                                     numericInput(inputId='ss2',
                                                  label='Choose number of simulations',
                                                  value=1),
@@ -117,6 +109,10 @@ ui <- fluidPage(
 
 # server ---
 server <- function(input, output) {
+  
+  # server select
+  updateSelectizeInput(inputId = 'team1', choices = statsTBL$Team %>% sort(), server = TRUE)
+  updateSelectizeInput(inputId = 'team2', choices = statsTBL$Team %>% sort(), server = TRUE)
   
   # build matchup on click
   gameTable <- reactiveValues(DFT=NULL)
